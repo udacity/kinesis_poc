@@ -42,7 +42,7 @@ public class KinesisSpoutTopology {
         RecordToTupleMapper recordToTupleMapper = new TestRecordToTupleMapper();
         KinesisConnectionInfo kinesisConnectionInfo = new KinesisConnectionInfo(new CredentialsProviderChain(), new ClientConfiguration(), Regions.US_WEST_2,
                 1000);
-        ZkInfo zkInfo = new ZkInfo("zookeeper/172.17.0.6:2181", "/kinesisOffsets", 20000, 15000, 10000L, 3, 2000);
+        ZkInfo zkInfo = new ZkInfo("172.17.0.2:2181", "/kinesisOffsets", 20000, 15000, 10000L, 3, 2000);
         KinesisConfig kinesisConfig = new KinesisConfig("frontend-classroom-events", ShardIteratorType.TRIM_HORIZON,
                 recordToTupleMapper, new Date(), new ExponentialBackoffRetrier(), zkInfo, kinesisConnectionInfo, 10000L);
         KinesisSpout kinesisSpout = new KinesisSpout(kinesisConfig);
