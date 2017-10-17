@@ -1,8 +1,7 @@
 # kinesis_poc
 
 Workspace Data Structure 
-
-{
+    
     id String (day_of+nd_key+nd_version+nd_locale+workspace_id+concept_key)
     
     interacted_users StringSet
@@ -38,4 +37,19 @@ Workspace Data Structure
     count_code_reset int
     code_reset_users StringSet
     
-}
+
+
+Storm Env Setup in AWS
+
+    sudo yum update -y
+    sudo yum install -y docker
+    sudo yum install -y git
+    sudo service docker start
+    sudo usermod -a -G docker ec2-user
+    exit 
+    
+    docker run -d --restart always --name some-zookeeper zookeeper
+    docker run -d --restart always --name some-nimbus --link some-zookeeper:zookeeper storm storm nimbus
+    docker run -d --restart always --name supervisor --link some-zookeeper:zookeeper --link some-nimbus:nimbus storm storm supervisor
+    docker run -d -p 8080:8080 --restart always --name ui --link some-nimbus:nimbus storm storm ui
+
