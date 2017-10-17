@@ -45,14 +45,14 @@ public class DefaultRecordToTupleMapper implements RecordToTupleMapper, Serializ
         tuple.add(record.getSequenceNumber());
         try {
             String data = decoder.decode(record.getData()).toString();
-            LOG.debug("data is " + data);
+            //LOG.debug("data is " + data);
             tuple.add(data);
         } catch (CharacterCodingException e) {
             e.printStackTrace();
             LOG.warn("Exception occured. Emitting tuple with empty string data", e);
             tuple.add("");
         }
-        LOG.info("Tuple from record is " + tuple);
+        //LOG.info("Tuple from record is " + tuple);
         return tuple;
     }
 }

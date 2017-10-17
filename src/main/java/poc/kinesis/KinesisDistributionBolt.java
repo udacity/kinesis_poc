@@ -23,6 +23,7 @@ import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichBolt;
+import org.apache.storm.tuple.Fields;
 import org.apache.storm.tuple.Tuple;
 import org.apache.storm.tuple.Values;
 import org.slf4j.Logger;
@@ -52,8 +53,7 @@ public class KinesisDistributionBolt extends BaseRichBolt {
 
             if(node.has(EVENT) && node.get(EVENT).textValue().startsWith(WORKSPACE)){
                 //emit to downstream
-                LOG.info(node.get(PROPERTIES).toString());
-                collector.emit(new Values(node));
+                collector.emit(new Values(jsonString));
             }else{
                 //drop unknow event
             }
@@ -66,5 +66,6 @@ public class KinesisDistributionBolt extends BaseRichBolt {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        declarer.declare(new Fields("workspace_event"));
     }
 }

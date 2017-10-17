@@ -48,8 +48,8 @@ public class KinesisSpoutTopology {
         KinesisSpout kinesisSpout = new KinesisSpout(kinesisConfig);
         TopologyBuilder topologyBuilder = new TopologyBuilder();
         topologyBuilder.setSpout("spout", kinesisSpout, 1);
-        topologyBuilder.setBolt("filter", new KinesisDistributionBolt(), 1).shuffleGrouping("spout");
-        topologyBuilder.setBolt("store_db", new WorkspaceWriterBolt(), 1).noneGrouping("filter");
+        topologyBuilder.setBolt("event_dist", new KinesisDistributionBolt(), 1).shuffleGrouping("spout");
+        topologyBuilder.setBolt("store_db", new WorkspaceWriterBolt(), 1).shuffleGrouping("event_dist");
         Config topologyConfig = new Config();
         topologyConfig.setDebug(true);
         topologyConfig.setNumWorkers(1);
