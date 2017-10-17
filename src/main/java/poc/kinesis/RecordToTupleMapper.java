@@ -45,7 +45,7 @@ public class TestRecordToTupleMapper implements RecordToTupleMapper, Serializabl
         tuple.add(record.getSequenceNumber());
         try {
             String data = decoder.decode(record.getData()).toString();
-            LOG.info("data is " + data);
+            LOG.debug("data is " + data);
             tuple.add(data);
         } catch (CharacterCodingException e) {
             e.printStackTrace();
