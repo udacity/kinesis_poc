@@ -30,8 +30,8 @@ import java.nio.charset.CharsetDecoder;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TestRecordToTupleMapper implements RecordToTupleMapper, Serializable {
-    private static final Logger LOG = LoggerFactory.getLogger(TestRecordToTupleMapper.class);
+public class DefaultRecordToTupleMapper implements RecordToTupleMapper, Serializable {
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultRecordToTupleMapper.class);
     @Override
     public Fields getOutputFields() {
         return new Fields("partitionKey", "sequenceNumber", "data");

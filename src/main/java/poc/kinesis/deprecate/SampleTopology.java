@@ -1,4 +1,4 @@
-package poc.kinesis;/*
+package poc.kinesis.deprecate;/*
  * Copyright 2013-2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Amazon Software License (the "License").
@@ -30,6 +30,7 @@ import org.apache.storm.tuple.Fields;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import poc.kinesis.ConfigKeys;
 
 import java.io.FileInputStream;
 import java.io.IOException;

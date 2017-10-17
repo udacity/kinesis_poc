@@ -1,4 +1,4 @@
-package poc.kinesis;/*
+package poc.kinesis.deprecate;/*
  * Copyright 2014 Amazon.com, Inc. or its affiliates. All Rights Reserved.
  *
  * Licensed under the Amazon Software License (the "License").

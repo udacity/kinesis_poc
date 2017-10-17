@@ -25,6 +25,11 @@
             <artifactId>storm-kinesis</artifactId>
             <version>1.1.1</version>
         </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-dynamodb</artifactId>
+            <version>1.10.77</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>

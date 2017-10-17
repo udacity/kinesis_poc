@@ -34,32 +34,33 @@ import org.slf4j.LoggerFactory;
 import java.util.Date;
 
 public class KinesisSpoutTopology {
-    private static final Logger LOG = LoggerFactory.getLogger(SampleTopology.class);
+    private static final Logger LOG = LoggerFactory.getLogger(KinesisSpoutTopology.class);
 
     public static void main (String args[]) throws InvalidTopologyException, AuthorizationException, AlreadyAliveException {
         String mode = null;
         mode = args[0];
-        RecordToTupleMapper recordToTupleMapper = new TestRecordToTupleMapper();
+        DefaultRecordToTupleMapper defaultRecordToTupleMapper = new DefaultRecordToTupleMapper();
         KinesisConnectionInfo kinesisConnectionInfo = new KinesisConnectionInfo(new CredentialsProviderChain(), new ClientConfiguration(), Regions.US_WEST_2,
                 1000);
         ZkInfo zkInfo = new ZkInfo("172.17.0.2:2181", "/kinesisOffsets", 20000, 15000, 10000L, 3, 2000);
         KinesisConfig kinesisConfig = new KinesisConfig("frontend-classroom-events", ShardIteratorType.TRIM_HORIZON,
-                recordToTupleMapper, new Date(), new ExponentialBackoffRetrier(), zkInfo, kinesisConnectionInfo, 10000L);
+                defaultRecordToTupleMapper, new Date(), new ExponentialBackoffRetrier(), zkInfo, kinesisConnectionInfo, 10000L);
         KinesisSpout kinesisSpout = new KinesisSpout(kinesisConfig);
         TopologyBuilder topologyBuilder = new TopologyBuilder();
-        topologyBuilder.setSpout("spout", kinesisSpout, 3);
-        topologyBuilder.setBolt("bolt", new KinesisBoltTest(), 1).shuffleGrouping("spout");
+        topologyBuilder.setSpout("spout", kinesisSpout, 1);
+        topologyBuilder.setBolt("filter", new KinesisDistributionBolt(), 1).shuffleGrouping("spout");
+        //topologyBuilder.setBolt("store_db", new WorkspaceWriterBolt(), 1).shuffleGrouping("filter");
         Config topologyConfig = new Config();
-        topologyConfig.setDebug(true);
-        topologyConfig.setNumWorkers(3);
+        topologyConfig.setDebug(false);
+        topologyConfig.setNumWorkers(1);
 
 
         if (mode.equals("LocalMode")) {
             LOG.info("Starting sample storm topology in LocalMode ...");
-            new LocalCluster().submitTopology("SampleTopology", topologyConfig, topologyBuilder.createTopology());
+            new LocalCluster().submitTopology("KinesisSpoutTopology", topologyConfig, topologyBuilder.createTopology());
         }else{
             LOG.info("Starting sample storm topology in RemoteMode ...");
-            StormSubmitter.submitTopology("SampleTopology", topologyConfig, topologyBuilder.createTopology());
+            StormSubmitter.submitTopology("KinesisSpoutTopology", topologyConfig, topologyBuilder.createTopology());
         }
     }
 }

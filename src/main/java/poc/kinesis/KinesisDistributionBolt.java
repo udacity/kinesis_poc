@@ -17,19 +17,27 @@
  */
 package poc.kinesis;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.storm.task.OutputCollector;
 import org.apache.storm.task.TopologyContext;
 import org.apache.storm.topology.OutputFieldsDeclarer;
 import org.apache.storm.topology.base.BaseRichBolt;
 import org.apache.storm.tuple.Tuple;
+import org.apache.storm.tuple.Values;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Map;
 
-public class KinesisBoltTest extends BaseRichBolt {
-    protected static final Logger LOG = LoggerFactory.getLogger(KinesisBoltTest.class);
+public class KinesisDistributionBolt extends BaseRichBolt {
+    protected static final Logger LOG = LoggerFactory.getLogger(KinesisDistributionBolt.class);
     private transient OutputCollector collector;
+    ObjectMapper mapper = new ObjectMapper();
+    private static final String EVENT = "event";
+    private static final String PROPERTIES = "properties";
+    private static final String WORKSPACE = "Workspace";
 
     @Override
     public void prepare(Map stormConf, TopologyContext context, OutputCollector collector) {
@@ -38,8 +46,22 @@ public class KinesisBoltTest extends BaseRichBolt {
 
     @Override
     public void execute(Tuple input) {
-        LOG.info("input = [" + input + "]");
-        collector.ack(input);
+        String jsonString = (String)input.getValues().get(2);
+        try {
+            JsonNode node = mapper.readTree(jsonString);
+
+            if(node.has(EVENT) && node.get(EVENT).textValue().startsWith(WORKSPACE)){
+                //emit to downstream
+                LOG.info(node.get(PROPERTIES).toString());
+                collector.emit(new Values(node));
+            }else{
+                //drop unknow event
+            }
+            collector.ack(input);
+        } catch (IOException ex) {
+            LOG.error("process record failed for "+jsonString, ex);
+            collector.fail(input);
+        }
     }
 
     @Override
