@@ -147,7 +147,7 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
                     "id",          // key attribute name
                     id,           // key attribute value
                     "add #sessionSet :sessionId, #userSet :userId " +
-                            "set #interacted = :empty, set #interacted.#sessionId = :empty, set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
+                            "set #interacted = :empty, #interacted.#sessionId = :empty, #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
                     expressionAttributeNames,
                     expressionAttributeValues);
             LOG.debug("update outcome: " + outcome.toString());
