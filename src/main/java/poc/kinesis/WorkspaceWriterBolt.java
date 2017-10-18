@@ -6,6 +6,8 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.document.UpdateItemOutcome;
+import com.amazonaws.services.dynamodbv2.document.spec.UpdateItemSpec;
+import com.amazonaws.services.dynamodbv2.document.utils.ValueMap;
 import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -119,40 +121,61 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
     }
 
     private void updateInteracted(String id, WorkspaceEvent event, String userId, String sessionId, double totalTimeSec, int numInteractions) {
-        Map<String, String> expressionAttributeNames = new HashMap<String, String>();
+        Map<String, String> expressionAttributeNames = new HashMap<>();
         expressionAttributeNames.put("#sessionSet", event.eventCount);
         expressionAttributeNames.put("#userSet", event.userSet);
         expressionAttributeNames.put("#interacted", "workspace_interacted");
-        expressionAttributeNames.put("#sessionId", sessionId);
-        expressionAttributeNames.put("#totalTimeSec", event.totalTimeSec);
-        expressionAttributeNames.put("#numInteractions", event.numInteractions);
 
-        Map<String, Object> expressionAttributeValues = new HashMap<String, Object>();
-        expressionAttributeValues.put(":sessionId", new HashSet<String>(Arrays.asList(sessionId)));
-        expressionAttributeValues.put(":userId", new HashSet<String>(Arrays.asList(userId)));
-        expressionAttributeValues.put(":totalTimeSec", totalTimeSec);
-        expressionAttributeValues.put(":numInteractions", numInteractions);
+        Map<String, Object> expressionAttributeValues = new HashMap<>();
+        expressionAttributeValues.put(":sessionId", new HashSet<>(Arrays.asList(sessionId)));
+        expressionAttributeValues.put(":userId", new HashSet<>(Arrays.asList(userId)));
 
         try {
+            ValueMap valueMap = new ValueMap();
+            valueMap.withMap(sessionId, new ValueMap().withNumber(event.totalTimeSec, totalTimeSec).withInt(event.numInteractions, numInteractions));
+            expressionAttributeValues.put(":mapValue", valueMap);
             UpdateItemOutcome outcome = table.updateItem(
                     "id",          // key attribute name
                     id,           // key attribute value
                     "add #sessionSet :sessionId, #userSet :userId " +
-                            "set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
+                            "set #interacted = :mapValue", // UpdateExpression
+                    "attribute_not_exists(#interacted)",
                     expressionAttributeNames,
                     expressionAttributeValues);
             LOG.debug("update outcome: " + outcome.toString());
-        }catch (AmazonServiceException ex){
-            UpdateItemOutcome outcome = table.updateItem(
-                    "id",          // key attribute name
-                    id,           // key attribute value
-                    "add #sessionSet :sessionId, #userSet :userId " +
-                            "set #interacted = :empty, #interacted.#sessionId = :empty, #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
-                    expressionAttributeNames,
-                    expressionAttributeValues);
-            LOG.debug("update outcome: " + outcome.toString());
-        }
+        } catch (ConditionalCheckFailedException ex1){
+            try {
+                ValueMap valueMap = new ValueMap();
+                valueMap.withNumber(event.totalTimeSec, totalTimeSec).withInt(event.numInteractions, numInteractions);
+                expressionAttributeValues.put(":mapValue", valueMap);
+                expressionAttributeNames.put("#sessionId", sessionId);
+                UpdateItemOutcome outcome = table.updateItem(
+                        "id",          // key attribute name
+                        id,           // key attribute value
+                        "add #sessionSet :sessionId, #userSet :userId " +
+                                "set #interacted.#sessionId = :mapValue", // UpdateExpression
+                        "attribute_not_exists(#interacted.#sessionId)",
+                        expressionAttributeNames,
+                        expressionAttributeValues);
+                LOG.debug("update outcome: " + outcome.toString());
+            } catch (ConditionalCheckFailedException ex2){
+                expressionAttributeValues.remove(":mapValue");
 
+                expressionAttributeNames.put("#totalTimeSec", event.totalTimeSec);
+                expressionAttributeNames.put("#numInteractions", event.numInteractions);
+                expressionAttributeValues.put(":totalTimeSec", totalTimeSec);
+                expressionAttributeValues.put(":numInteractions", numInteractions);
+
+                UpdateItemOutcome outcome = table.updateItem(
+                        "id",          // key attribute name
+                        id,           // key attribute value
+                        "add #sessionSet :sessionId, #userSet :userId " +
+                                "set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
+                        expressionAttributeNames,
+                        expressionAttributeValues);
+                LOG.debug("update outcome: " + outcome.toString());
+            }
+        }
     }
 
     private void updateState(String id, WorkspaceEvent event, String uid){
