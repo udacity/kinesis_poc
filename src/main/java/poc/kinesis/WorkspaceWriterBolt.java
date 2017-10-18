@@ -133,10 +133,8 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
         UpdateItemOutcome outcome = table.updateItem(
                 "id",          // key attribute name
                 id,           // key attribute value
-                "add #sessionSet :sessionId " +
-                        "add #userSet :userId " +
-                        "set #totalTimeSec = :totalTimeSec " +
-                        "set #numInteractions = :numInteractions", // UpdateExpression
+                "add #sessionSet :sessionId #userSet :userId " +
+                        "set #totalTimeSec = :totalTimeSec #numInteractions = :numInteractions", // UpdateExpression
                 expressionAttributeNames,
                 expressionAttributeValues);
         LOG.debug("update outcome: " + outcome.toString());
