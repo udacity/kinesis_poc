@@ -130,50 +130,58 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
         expressionAttributeValues.put(":sessionId", new HashSet<>(Arrays.asList(sessionId)));
         expressionAttributeValues.put(":userId", new HashSet<>(Arrays.asList(userId)));
 
+
         try {
-            ValueMap valueMap = new ValueMap();
-            valueMap.withMap(sessionId, new ValueMap().withNumber(event.totalTimeSec, totalTimeSec).withInt(event.numInteractions, numInteractions));
-            expressionAttributeValues.put(":mapValue", valueMap);
+            expressionAttributeNames.put("#sessionId", sessionId);
+            expressionAttributeNames.put("#totalTimeSec", event.totalTimeSec);
+            expressionAttributeNames.put("#numInteractions", event.numInteractions);
+            expressionAttributeValues.put(":totalTimeSec", totalTimeSec);
+            expressionAttributeValues.put(":numInteractions", numInteractions);
+
             UpdateItemOutcome outcome = table.updateItem(
                     "id",          // key attribute name
                     id,           // key attribute value
                     "add #sessionSet :sessionId, #userSet :userId " +
-                            "set #interacted = :mapValue", // UpdateExpression
-                    "attribute_not_exists(#interacted)",
+                            "set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
+                    "attribute_exists(#interacted.#sessionId)",
                     expressionAttributeNames,
                     expressionAttributeValues);
             LOG.debug("update outcome: " + outcome.toString());
         } catch (ConditionalCheckFailedException ex1){
-            try {
+            try{
+                expressionAttributeNames.remove("#totalTimeSec");
+                expressionAttributeNames.remove("#numInteractions");
+                expressionAttributeValues.remove(":totalTimeSec");
+                expressionAttributeValues.remove(":numInteractions");
+
                 ValueMap valueMap = new ValueMap();
                 valueMap.withNumber(event.totalTimeSec, totalTimeSec).withInt(event.numInteractions, numInteractions);
                 expressionAttributeValues.put(":mapValue", valueMap);
-                expressionAttributeNames.put("#sessionId", sessionId);
                 UpdateItemOutcome outcome = table.updateItem(
                         "id",          // key attribute name
                         id,           // key attribute value
                         "add #sessionSet :sessionId, #userSet :userId " +
                                 "set #interacted.#sessionId = :mapValue", // UpdateExpression
-                        "attribute_not_exists(#interacted.#sessionId)",
+                        "attribute_exists(#interacted)",
                         expressionAttributeNames,
                         expressionAttributeValues);
                 LOG.debug("update outcome: " + outcome.toString());
-            } catch (ConditionalCheckFailedException ex2){
-                expressionAttributeValues.remove(":mapValue");
+            }catch (ConditionalCheckFailedException ex2){
+                expressionAttributeNames.remove("#sessionId");
 
-                expressionAttributeNames.put("#totalTimeSec", event.totalTimeSec);
-                expressionAttributeNames.put("#numInteractions", event.numInteractions);
-                expressionAttributeValues.put(":totalTimeSec", totalTimeSec);
-                expressionAttributeValues.put(":numInteractions", numInteractions);
-
+                ValueMap valueMap = new ValueMap();
+                valueMap.withMap(sessionId, new ValueMap().withNumber(event.totalTimeSec, totalTimeSec).withInt(event.numInteractions, numInteractions));
+                expressionAttributeValues.put(":mapValue", valueMap);
                 UpdateItemOutcome outcome = table.updateItem(
                         "id",          // key attribute name
                         id,           // key attribute value
                         "add #sessionSet :sessionId, #userSet :userId " +
-                                "set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
+                                "set #interacted = :mapValue", // UpdateExpression
+                        "attribute_not_exists(#interacted)",
                         expressionAttributeNames,
                         expressionAttributeValues);
                 LOG.debug("update outcome: " + outcome.toString());
+
             }
         }
     }
