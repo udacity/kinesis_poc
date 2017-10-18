@@ -121,8 +121,10 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
         Map<String, String> expressionAttributeNames = new HashMap<String, String>();
         expressionAttributeNames.put("#sessionSet", event.eventCount);
         expressionAttributeNames.put("#userSet", event.userSet);
-        expressionAttributeNames.put("#totalTimeSec", "workspace_interacted"+"."+sessionId+"."+event.totalTimeSec);
-        expressionAttributeNames.put("#numInteractions", "workspace_interacted"+"."+sessionId+"."+event.numInteractions);
+        expressionAttributeNames.put("#interacted", "workspace_interacted");
+        expressionAttributeNames.put("#sessionId", sessionId);
+        expressionAttributeNames.put("#totalTimeSec", event.totalTimeSec);
+        expressionAttributeNames.put("#numInteractions", event.numInteractions);
 
         Map<String, Object> expressionAttributeValues = new HashMap<String, Object>();
         expressionAttributeValues.put(":sessionId", new HashSet<String>(Arrays.asList(sessionId)));
@@ -134,7 +136,7 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
                 "id",          // key attribute name
                 id,           // key attribute value
                 "add #sessionSet :sessionId, #userSet :userId " +
-                        "set #totalTimeSec = :totalTimeSec, #numInteractions = :numInteractions", // UpdateExpression
+                        "set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
                 expressionAttributeNames,
                 expressionAttributeValues);
         LOG.debug("update outcome: " + outcome.toString());
