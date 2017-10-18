@@ -1,5 +1,6 @@
 package poc.kinesis;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
@@ -132,14 +133,25 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
         expressionAttributeValues.put(":totalTimeSec", totalTimeSec);
         expressionAttributeValues.put(":numInteractions", numInteractions);
 
-        UpdateItemOutcome outcome = table.updateItem(
-                "id",          // key attribute name
-                id,           // key attribute value
-                "add #sessionSet :sessionId, #userSet :userId " +
-                        "set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
-                expressionAttributeNames,
-                expressionAttributeValues);
-        LOG.debug("update outcome: " + outcome.toString());
+        try {
+            UpdateItemOutcome outcome = table.updateItem(
+                    "id",          // key attribute name
+                    id,           // key attribute value
+                    "add #sessionSet :sessionId, #userSet :userId " +
+                            "set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
+                    expressionAttributeNames,
+                    expressionAttributeValues);
+            LOG.debug("update outcome: " + outcome.toString());
+        }catch (AmazonServiceException ex){
+            UpdateItemOutcome outcome = table.updateItem(
+                    "id",          // key attribute name
+                    id,           // key attribute value
+                    "add #sessionSet :sessionId, #userSet :userId " +
+                            "set #interacted = :empty, set #interacted.#sessionId = :empty, set #interacted.#sessionId.#totalTimeSec = :totalTimeSec, #interacted.#sessionId.#numInteractions = :numInteractions", // UpdateExpression
+                    expressionAttributeNames,
+                    expressionAttributeValues);
+            LOG.debug("update outcome: " + outcome.toString());
+        }
 
     }
 
