@@ -27,7 +27,7 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
 
     enum WorkspaceEvent {
         VIEWED("count_viewed", "viewed_users"),
-        INTERACTED("sessions_interacted", "interacted_users"),
+        INTERACTED("sessions_interacted", "interacted_users", "total_time_sec", "num_interactions"),
         TERMINAL_ADDED("count_terminals_added","terminal_added_users"),
         TERMINAL_REMOVED("count_terminals_removed","terminal_removed_users"),
         CODE_PREVIEWED("count_preview_opened", "preview_opened_users"),
@@ -38,9 +38,18 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
 
         private final String eventCount;
         private final String userSet;
+        private final String totalTimeSec;
+        private final String numInteractions;
+
         WorkspaceEvent(String eventCount, String userSet) {
+            this(eventCount, userSet, null, null);
+        }
+
+        WorkspaceEvent(String eventCount, String userSet, String totalTimeSec, String numInteractions) {
             this.eventCount = eventCount;
             this.userSet = userSet;
+            this.totalTimeSec = totalTimeSec;
+            this.numInteractions = numInteractions;
         }
 
     }
@@ -69,7 +78,10 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
                         updateState(id, WorkspaceEvent.VIEWED, node.get("userId").textValue());
                         break;
                     case "Workspace Interacted":
-                        updateState(id, WorkspaceEvent.INTERACTED, node.get("userId").textValue());
+                        updateInteracted(id, WorkspaceEvent.INTERACTED, node.get("userId").textValue(),
+                                node.get("properties").get("workspace_session").textValue(),
+                                node.get("properties").get("total_time_sec").doubleValue(),
+                                node.get("properties").get("num_interactions").intValue());
                         break;
                     case "Workspace Terminal Added":
                         updateState(id, WorkspaceEvent.TERMINAL_ADDED, node.get("userId").textValue());
@@ -105,11 +117,36 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
         collector.ack(tuple);
     }
 
-    void updateState(String id, WorkspaceEvent event, String uid){
-        LOG.warn("db update start process");
+    private void updateInteracted(String id, WorkspaceEvent event, String userId, String sessionId, double totalTimeSec, int numInteractions) {
         Map<String, String> expressionAttributeNames = new HashMap<String, String>();
-        expressionAttributeNames.put("#A", event.eventCount);
-        expressionAttributeNames.put("#B", event.userSet);
+        expressionAttributeNames.put("#sessionSet", event.eventCount);
+        expressionAttributeNames.put("#userSet", event.userSet);
+        expressionAttributeNames.put("#totalTimeSec", "workspace_interacted"+"."+sessionId+"."+event.totalTimeSec);
+        expressionAttributeNames.put("#numInteractions", "workspace_interacted"+"."+sessionId+"."+event.numInteractions);
+
+        Map<String, Object> expressionAttributeValues = new HashMap<String, Object>();
+        expressionAttributeValues.put(":sessionId", new HashSet<String>(Arrays.asList(sessionId)));
+        expressionAttributeValues.put(":userId", new HashSet<String>(Arrays.asList(userId)));
+        expressionAttributeValues.put(":totalTimeSec", totalTimeSec);
+        expressionAttributeValues.put(":numInteractions", numInteractions);
+
+        UpdateItemOutcome outcome = table.updateItem(
+                "id",          // key attribute name
+                id,           // key attribute value
+                "add #sessionSet :sessionId " +
+                        "add #userSet :userId " +
+                        "set #totalTimeSec = :totalTimeSec " +
+                        "set #numInteractions = :numInteractions", // UpdateExpression
+                expressionAttributeNames,
+                expressionAttributeValues);
+        LOG.debug("update outcome: " + outcome.toString());
+
+    }
+
+    private void updateState(String id, WorkspaceEvent event, String uid){
+        Map<String, String> expressionAttributeNames = new HashMap<String, String>();
+        expressionAttributeNames.put("#eventCount", event.eventCount);
+        expressionAttributeNames.put("#userSet", event.userSet);
 
         Map<String, Object> expressionAttributeValues = new HashMap<String, Object>();
         expressionAttributeValues.put(":val1", 1);
@@ -119,19 +156,19 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
             UpdateItemOutcome outcome = table.updateItem(
                     "id",          // key attribute name
                     id,           // key attribute value
-                    "set #A = #A + :val1 add #B :val2 ", // UpdateExpression
-                    "attribute_exists(#A) ",
+                    "set #eventCount = #eventCount + :val1 add #userSet :val2 ", // UpdateExpression
+                    "attribute_exists(#eventCount) ",
                     expressionAttributeNames,
                     expressionAttributeValues);
-            LOG.warn("db response1: " + outcome.toString());
+            LOG.debug("update outcome: " + outcome.toString());
         } catch (ConditionalCheckFailedException ex) {
             UpdateItemOutcome outcome = table.updateItem(
                     "id",          // key attribute name
                     id,           // key attribute value
-                    "set #A = :val1 add #B :val2 ", // UpdateExpression
+                    "set #eventCount = :val1 add #userSet :val2 ", // UpdateExpression
                     expressionAttributeNames,
                     expressionAttributeValues);
-            LOG.warn("db response2: " + outcome.toString());
+            LOG.debug("update outcome: " + outcome.toString());
         }
     }
 
@@ -148,7 +185,7 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
                 LOG.error("missing required field to construct primary key. " + node.toString());
                 return null;
             }
-            return (new StringBuilder().append(day_of + "_").append(nd_key + "_").append(nd_version + "_").append(nd_locale + "_").append(workspace_id + "_").append(concept_key + "_")).toString();
+            return (new StringBuilder().append(day_of + "_").append(nd_key + "_").append(nd_version + "_").append(nd_locale + "_").append(workspace_id + "_").append(concept_key)).toString();
 
         }catch (Exception ex){
             LOG.error("missing required field to construct primary key. " + node.toString());
