@@ -1,6 +1,8 @@
 # kinesis_poc
 
-Workspace Data Structure 
+The POC Project read data from Kinese Stream, then aggregate data and store in DynamoDB, finally transfer data from DynamoDB to RDS.
+
+Workspace Data Structure in DynamoDB
     
     id String (day_of+nd_key+nd_version+nd_locale+workspace_id+concept_key)
     
