@@ -54,4 +54,6 @@ Storm Env Setup in AWS
     docker run -d --restart always --name some-nimbus --link some-zookeeper:zookeeper storm storm nimbus
     docker run -d --restart always --name supervisor --link some-zookeeper:zookeeper --link some-nimbus:nimbus storm storm supervisor
     docker run -d -p 8080:8080 --restart always --name ui --link some-nimbus:nimbus storm storm ui
+    //Run Application
+    docker run --link some-nimbus:nimbus --link some-zookeeper:zookeeper -it --rm -v $(pwd)/target/kinesis_poc-1.0-SNAPSHOT-jar-with-dependencies.jar:/topology.jar storm storm jar /topology.jar poc.kinesis.KinesisSpoutTopology LocalMode
 
