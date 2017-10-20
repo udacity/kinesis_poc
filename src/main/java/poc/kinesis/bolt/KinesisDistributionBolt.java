@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package poc.kinesis;
+package poc.kinesis.bolt;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,7 +37,6 @@ public class KinesisDistributionBolt extends BaseRichBolt {
     private transient OutputCollector collector;
     ObjectMapper mapper = new ObjectMapper();
     private static final String EVENT = "event";
-    private static final String PROPERTIES = "properties";
     private static final String WORKSPACE = "Workspace";
 
     @Override
@@ -53,6 +52,12 @@ public class KinesisDistributionBolt extends BaseRichBolt {
 
             if(node.has(EVENT) && node.get(EVENT).textValue().startsWith(WORKSPACE)){
                 //emit to downstream
+                collector.emit(new Values(jsonString));
+            }else if(node.has("workspace_id")&&node.has("workspace_session")
+                    &&node.has("received_at")&&node.has("nd_key")
+                    &&node.has("nd_version")&&node.has("nd_locale")
+                    &&node.has("concept_key")){
+                //page event for views
                 collector.emit(new Values(jsonString));
             }else{
                 //drop unknow event

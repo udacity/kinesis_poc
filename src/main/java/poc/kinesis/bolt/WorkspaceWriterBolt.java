@@ -1,12 +1,10 @@
-package poc.kinesis;
+package poc.kinesis.bolt;
 
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.document.UpdateItemOutcome;
-import com.amazonaws.services.dynamodbv2.document.spec.UpdateItemSpec;
 import com.amazonaws.services.dynamodbv2.document.utils.ValueMap;
 import com.amazonaws.services.dynamodbv2.model.ConditionalCheckFailedException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -38,6 +36,22 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
         PROJECT_SUBMITTED("count_project_submitted", "project_submitted_users"),
         CODE_RESET_CLICKED("count_code_reset_click", "code_reset_click_users"),
         CODE_RESET("count_code_reset", "code_reset_users");
+
+        public String getEventCount() {
+            return eventCount;
+        }
+
+        public String getUserSet() {
+            return userSet;
+        }
+
+        public String getTotalTimeSec() {
+            return totalTimeSec;
+        }
+
+        public String getNumInteractions() {
+            return numInteractions;
+        }
 
         private final String eventCount;
         private final String userSet;
@@ -217,7 +231,7 @@ public class WorkspaceWriterBolt extends BaseRichBolt {
 
     private String getId(JsonNode node){
         try {
-            String day_of = node.get("receivedAt").textValue().substring(0, 11);
+            String day_of = node.get("receivedAt").textValue().substring(0, 10);
 
             String nd_key = node.get("properties").get("nd_key").textValue();
             String nd_version = node.get("properties").get("nd_version").textValue();

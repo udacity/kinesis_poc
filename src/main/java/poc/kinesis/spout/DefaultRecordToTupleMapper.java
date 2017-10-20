@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package poc.kinesis;
+package poc.kinesis.spout;
 
 import com.amazonaws.services.kinesis.model.Record;
 import org.apache.storm.kinesis.spout.RecordToTupleMapper;

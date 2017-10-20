@@ -30,6 +30,11 @@ import org.apache.storm.kinesis.spout.*;
 import org.apache.storm.topology.TopologyBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import poc.kinesis.bolt.KinesisDistributionBolt;
+import poc.kinesis.bolt.RDSWriterBolt;
+import poc.kinesis.bolt.WorkspaceWriterBolt;
+import poc.kinesis.spout.CronSpout;
+import poc.kinesis.spout.DefaultRecordToTupleMapper;
 
 import java.util.Date;
 
@@ -50,9 +55,14 @@ public class KinesisSpoutTopology {
         topologyBuilder.setSpout("spout", kinesisSpout, 1);
         topologyBuilder.setBolt("event_dist", new KinesisDistributionBolt(), 1).shuffleGrouping("spout");
         topologyBuilder.setBolt("store_db", new WorkspaceWriterBolt(), 3).shuffleGrouping("event_dist");
+
+        CronSpout cronSpout = new CronSpout();
+        topologyBuilder.setSpout("cron", cronSpout, 1);
+        topologyBuilder.setBolt("rds", new RDSWriterBolt(), 1).shuffleGrouping("cron");
+
         Config topologyConfig = new Config();
         topologyConfig.setDebug(true);
-        topologyConfig.setNumWorkers(1);
+        topologyConfig.setNumWorkers(2);
 
 
         if (mode.equals("LocalMode")) {
